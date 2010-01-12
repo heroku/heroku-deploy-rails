@@ -22,6 +22,7 @@ private ######################################################################
 
       remote = applications[app]
 
+      # confirm prompts for yes/no
       if confirm
         command "maintenance:on", "--app", app
 
@@ -34,10 +35,12 @@ private ######################################################################
       end
     end
 
+    # gets the current git branch
     def current_branch
       %x{ git branch -a }.split("\n").detect { |b| b =~ /^\*/ }[2..-1]
     end
 
+    # push to git, return boolean success
     def git_push(remote, branch)
       command = "git push #{remote} #{branch}:master"
       puts "Executing: #{command}"
