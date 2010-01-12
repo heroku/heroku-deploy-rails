@@ -6,7 +6,7 @@ module Heroku::Command
       push_with_confirmation selected_application
     end
 
-    # build heroku deploy:<app_name>
+    # build heroku deploy:<remote>
     applications.each do |app, remote|
       define_method remote do
         push_with_confirmation app
