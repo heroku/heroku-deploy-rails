@@ -30,8 +30,9 @@ private ######################################################################
           display "Running Migrations"
           command :rake, "db:migrate", "--app", app
           command :restart,            "--app", app
-          command "maintenance:off",   "--app", app
         end
+
+        command "maintenance:off", "--app", app
       end
     end
 
