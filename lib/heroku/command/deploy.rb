@@ -3,6 +3,7 @@ module Heroku::Command
 
     # heroku deploy
     def index
+      # selected_application returns the app specified by --app or the default
       push_with_confirmation selected_application
     end
 
