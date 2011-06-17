@@ -16,6 +16,7 @@ module Heroku::Command
     end
 
     Heroku::Command::Base.new.send(:git_remotes).each do |name, app|
+      next if instance_methods.include?(name.to_sym)
       define_method(name) do
         push_with_confirmation(app)
       end
@@ -37,15 +38,15 @@ private ######################################################################
 
       # confirm prompts for yes/no
       if confirm
-        command "maintenance:on", "--app", app
+        run_command "maintenance:on", ["--app", app]
 
         if git_push(remote, current_branch)
           display "Running Migrations"
-          command :rake, "db:migrate", "--app", app
-          command :restart,            "--app", app
+          run_command :rake, ["db:migrate", "--app", app]
+          run_command :restart, ["--app", app]
         end
 
-        command "maintenance:off", "--app", app
+        run_command "maintenance:off", ["--app", app]
       end
     end
 
