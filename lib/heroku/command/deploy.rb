@@ -1,39 +1,52 @@
 module Heroku::Command
-  class Deploy < Base
+  # automated Rails-based deploys
+  #
+  class Deploy < BaseWithApp
 
-    # heroku deploy
+    # deploy
+    #
+    # Deploy the current branch
+    #
+    # A deploy wraps a push + migrate while toggling the maintenance page.
+    # Confirmation is required prior to pushing.
+    #
     def index
       # selected_application returns the app specified by --app or the default
-      push_with_confirmation selected_application
+      push_with_confirmation(app)
     end
 
-    # build heroku deploy:<remote>
-    applications.each do |app, remote|
-      define_method remote do
-        push_with_confirmation app
+    Heroku::Command::Base.new.send(:git_remotes).each do |name, app|
+      next if instance_methods.include?(name.to_sym)
+      define_method(name) do
+        push_with_confirmation(app)
       end
+      help = {
+        :summary => " Deploy the current branch to #{name} (app: #{app})",
+        :description => " A deploy wraps a push + migrate while toggling the maintenance page.\n Confirmation is required prior to pushing."
+      }
+      help[:help] = ["deploy:#{name}", help[:summary], help[:description]].join("\n\n")
+      Heroku::Command.commands["deploy:#{name}"].merge!(help)
     end
 
 private ######################################################################
 
     def push_with_confirmation(app)
-      raise CommandFailed, "Unknown application" unless applications[app]
+      remote = git_remotes.invert[app]
+      raise CommandFailed, "Unknown application" unless remote
 
       display "This will push the #{current_branch} branch to the application #{app}"
 
-      remote = applications[app]
-
       # confirm prompts for yes/no
       if confirm
-        command "maintenance:on", "--app", app
+        run_command "maintenance:on", ["--app", app]
 
         if git_push(remote, current_branch)
           display "Running Migrations"
-          command :rake, "db:migrate", "--app", app
-          command :restart,            "--app", app
+          run_command "run:rake", ["db:migrate", "--app", app]
+          run_command "ps:restart", ["--app", app]
         end
 
-        command "maintenance:off", "--app", app
+        run_command "maintenance:off", ["--app", app]
       end
     end
 
@@ -49,22 +62,6 @@ private ######################################################################
       puts %x{ #{command} 2>&1 }
       $?.exitstatus == 0
     end
-
-## help ######################################################################
-
-   Help.group 'Deployment' do |group|
-
-     # create a default deploy task for the default app if one exists
-     app = selected_application
-     group.command 'deploy', "Deploy your application #{app} app" if app
-
-     # create a deploy task for each recognized app remote
-     applications.each do |app, remote|
-       group.command "deploy:#{remote}", "Deploy to the #{app} app"
-     end
-
-   end if applications.length > 0
-
   end
 
 end
