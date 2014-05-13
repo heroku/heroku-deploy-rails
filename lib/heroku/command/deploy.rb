@@ -42,7 +42,7 @@ private ######################################################################
 
         if git_push(remote, current_branch)
           display "Running Migrations"
-          run_command "run:rake", ["db:migrate", "--app", app]
+          run_command "run", ["rake", "db:migrate", "--app", app]
           run_command "ps:restart", ["--app", app]
         end
 
