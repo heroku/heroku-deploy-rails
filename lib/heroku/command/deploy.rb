@@ -10,6 +10,8 @@ module Heroku::Command
     # A deploy wraps a push + migrate while toggling the maintenance page.
     # Confirmation is required prior to pushing.
     #
+    # -f, --force      # force push if heroku rejects the push
+    #
     def index
       # selected_application returns the app specified by --app or the default
       push_with_confirmation(app)
@@ -57,11 +59,32 @@ private ######################################################################
 
     # push to git, return boolean success
     def git_push(remote, branch)
-      command = "git push #{remote} #{branch}:master"
-      puts "Executing: #{command}"
-      puts %x{ #{command} 2>&1 }
-      $?.exitstatus == 0
+      command = ["git", "push"]
+      if options[:force]
+        command << "--force"
+      end
+      command << [remote, "#{branch}:master"]
+      display "Pushing repository"
+      run_local_command command
     end
+
+    def run_local_command(*args)
+      args.flatten!
+      begin
+        PTY.spawn(*args) do |stdout, stdin, pid|
+          begin
+            stdout.each { |line| puts line.chomp }
+          rescue Errno::EIO
+            # ignore EIO errors, as they do not influence the result
+          end
+          Process.wait(pid)
+        end
+        $?.exitstatus == 0
+      rescue PTY::ChildExited
+        false
+      end
+    end
+
   end
 
 end
